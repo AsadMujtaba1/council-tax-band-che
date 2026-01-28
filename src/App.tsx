@@ -520,6 +520,195 @@ function App() {
               </CardContent>
             </Card>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-1">Your Annual Cost</p>
+                    <p className="text-3xl font-bold text-primary hero-metric">
+                      £{((data.userAnnualCostPence || 0) / 100).toFixed(0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Band {data.userCouncilTaxBand}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-1">Area Average</p>
+                    <p className="text-3xl font-bold text-secondary hero-metric">
+                      £{data.averageAnnualCostPounds.toFixed(0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Band C (typical)</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-1">If Lower Band</p>
+                    <p className="text-3xl font-bold text-accent hero-metric">
+                      £{(((data.userAnnualCostPence || 0) - (data.estimatedSavingsPounds * 100)) / 100).toFixed(0)}
+                    </p>
+                    <p className="text-xs text-success mt-1">Save £{data.estimatedSavingsPounds.toFixed(0)}/year</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Visual Band Comparison</CardTitle>
+                <CardDescription>
+                  Bar chart showing annual costs across all bands
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {getBandComparison()?.map((item) => {
+                    const maxCost = Math.max(...(getBandComparison()?.map(b => b.cost) || []))
+                    const widthPercent = (item.cost / maxCost) * 100
+                    
+                    return (
+                      <div key={item.band} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className={`font-semibold ${item.isUserBand ? 'text-primary' : 'text-foreground'}`}>
+                            Band {item.band}
+                          </span>
+                          <span className="font-bold data-table">£{item.cost.toFixed(0)}</span>
+                        </div>
+                        <div className="relative h-10 bg-muted rounded-lg overflow-hidden">
+                          <div
+                            className={`h-full flex items-center px-3 transition-all duration-500 ${
+                              item.isUserBand
+                                ? 'bg-primary'
+                                : item.isLower
+                                ? 'bg-success'
+                                : 'bg-secondary'
+                            }`}
+                            style={{ width: `${widthPercent}%` }}
+                          >
+                            {item.isUserBand && (
+                              <span className="text-xs font-semibold text-primary-foreground">Your Band</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    🔵 Your current band &nbsp;|&nbsp; 🟢 Lower bands (potential savings) &nbsp;|&nbsp; ⚫ Higher bands
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>5-Year Cost Projection</CardTitle>
+                <CardDescription>
+                  How inflation affects your council tax over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full data-table">
+                    <thead>
+                      <tr className="border-b-2 border-border">
+                        <th className="text-left py-3 px-2 text-sm font-semibold">Year</th>
+                        <th className="text-right py-3 px-2 text-sm font-semibold">Current Band {data.userCouncilTaxBand}</th>
+                        <th className="text-right py-3 px-2 text-sm font-semibold">If Lower Band</th>
+                        <th className="text-right py-3 px-2 text-sm font-semibold">Annual Savings</th>
+                        <th className="text-right py-3 px-2 text-sm font-semibold">Cumulative</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.from({ length: 5 }, (_, i) => {
+                        const year = new Date().getFullYear() + i
+                        const inflationRate = i === 0 ? 0 : 0.023
+                        const currentCost = ((data.userAnnualCostPence || 0) / 100) * Math.pow(1 + inflationRate, i)
+                        const lowerCost = currentCost - data.estimatedSavingsPounds
+                        const annualSavings = data.estimatedSavingsPounds * Math.pow(1 + inflationRate, i)
+                        const cumulative = data.estimatedSavingsPounds * ((Math.pow(1 + inflationRate, i + 1) - 1) / inflationRate)
+                        
+                        return (
+                          <tr key={year} className="border-b border-border/50">
+                            <td className="py-3 px-2 font-semibold">{year}</td>
+                            <td className="text-right py-3 px-2">£{currentCost.toFixed(0)}</td>
+                            <td className="text-right py-3 px-2 text-success font-semibold">£{lowerCost.toFixed(0)}</td>
+                            <td className="text-right py-3 px-2 text-accent font-semibold">£{annualSavings.toFixed(0)}</td>
+                            <td className="text-right py-3 px-2 text-primary font-bold">£{cumulative.toFixed(0)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-4 p-4 bg-accent/10 border border-accent/20 rounded-lg">
+                  <p className="text-sm font-semibold mb-1">💡 Long-term Impact</p>
+                  <p className="text-sm text-muted-foreground">
+                    Over 5 years, successfully challenging your band could save you approximately £{(data.estimatedSavingsPounds * 5.1).toFixed(0)} (accounting for 2.3% annual inflation).
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Band Distribution Insights</CardTitle>
+                <CardDescription>
+                  Typical property characteristics by band
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { band: 'A', value: '< £40k', description: 'Small flats, terraced properties', percent: 24 },
+                    { band: 'B', value: '£40k-£52k', description: 'Smaller terraced homes', percent: 20 },
+                    { band: 'C', value: '£52k-£68k', description: 'Average family homes', percent: 22 },
+                    { band: 'D', value: '£68k-£88k', description: 'Larger family homes', percent: 15 },
+                    { band: 'E', value: '£88k-£120k', description: 'Detached properties', percent: 9 },
+                    { band: 'F', value: '£120k-£160k', description: 'Large detached homes', percent: 5 },
+                    { band: 'G', value: '£160k-£320k', description: 'Very large properties', percent: 4 },
+                    { band: 'H', value: '> £320k', description: 'Premium properties', percent: 1 },
+                  ].map((item) => {
+                    const isUserBand = item.band === data.userCouncilTaxBand
+                    return (
+                      <div
+                        key={item.band}
+                        className={`p-4 rounded-lg border ${
+                          isUserBand ? 'border-primary bg-primary/5 border-2' : 'border-border bg-card'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl font-bold">Band {item.band}</span>
+                              {isUserBand && <Badge variant="default" className="text-xs">You</Badge>}
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">{item.value}</p>
+                          </div>
+                          <span className="text-sm font-semibold text-muted-foreground">{item.percent}%</span>
+                        </div>
+                        <p className="text-sm text-foreground/80">{item.description}</p>
+                        <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={isUserBand ? 'bg-primary' : 'bg-secondary'}
+                            style={{ width: `${item.percent * 4}%`, height: '100%' }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-4 text-center">
+                  Values based on 1991 property prices in England and Wales. {data.postcodeMeta.region} distribution may vary.
+                </p>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

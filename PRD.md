@@ -40,6 +40,34 @@ This tool processes user inputs (postcode, property details), compares against d
 - Progression: Load inflation data → Calculate adjusted historical costs → Display trend → Add context annotations
 - Success criteria: Clear visual representation of cost increases; easy to understand trend direction
 
+**Visual Band Cost Chart**
+- Functionality: Horizontal bar chart displaying annual costs across all 8 council tax bands
+- Purpose: Provides immediate visual comparison of cost differences between bands
+- Trigger: Displayed after data retrieval in results section
+- Progression: Calculate band costs → Render proportional bars → Highlight user's band → Color-code lower bands
+- Success criteria: User can immediately identify their band position and see relative cost differences at a glance
+
+**5-Year Cost Projection Table**
+- Functionality: Table showing projected costs over 5 years with inflation adjustments
+- Purpose: Demonstrates long-term financial impact of challenging vs. not challenging band
+- Trigger: Displayed after initial results calculation
+- Progression: Apply inflation rate → Calculate year-over-year costs → Show cumulative savings → Display total impact
+- Success criteria: Clear numeric progression showing compound savings effect; cumulative column emphasizes total opportunity
+
+**Metric Cards Dashboard**
+- Functionality: Three-card layout showing current cost, area average, and potential lower band cost
+- Purpose: Quick reference comparison of key financial metrics
+- Trigger: Displayed prominently after hero savings card
+- Progression: Display user cost → Show area benchmark → Present potential cost → Enable quick mental calculation
+- Success criteria: Cards are scannable at a glance; color coding reinforces hierarchy
+
+**Band Distribution Insights Grid**
+- Functionality: Grid of 8 cards showing typical property characteristics and value ranges per band
+- Purpose: Helps users understand if their property genuinely fits their assigned band
+- Trigger: Displayed in lower section of results for educational context
+- Progression: Show band value ranges → Display property types → Indicate distribution percentages → Highlight user's band
+- Success criteria: Users can self-assess whether their property characteristics match their band assignment
+
 **Challenge Pathway CTAs**
 - Functionality: Directs users to band challenge services and information resources
 - Purpose: Converts insight into action and generates affiliate revenue
