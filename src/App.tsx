@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { PostcodeMap } from '@/components/PostcodeMap'
 
 /**
  * DATA SOURCES REQUIRED:
@@ -792,6 +793,21 @@ function App() {
                     <p className="text-sm text-muted-foreground">
                       💡 Council tax can vary significantly between neighboring postcodes due to different local authorities and property valuations. Compare your area with nearby locations.
                     </p>
+                  </div>
+
+                  <div className="p-6 bg-card rounded-lg border-2 border-primary/20">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-primary" weight="fill" />
+                      Interactive Regional Map
+                    </h3>
+                    <PostcodeMap
+                      centerPostcode={data.postcodeMeta.postcode}
+                      centerLat={data.postcodeMeta.latitude}
+                      centerLng={data.postcodeMeta.longitude}
+                      neighboringPostcodes={data.neighboringPostcodes}
+                      userBand={data.userCouncilTaxBand || 'D'}
+                      userCostPence={data.userAnnualCostPence || 0}
+                    />
                   </div>
 
                   <div className="space-y-3">
