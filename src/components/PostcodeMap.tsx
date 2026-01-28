@@ -41,6 +41,7 @@ export function PostcodeMap({
   const svgRef = useRef<SVGSVGElement>(null)
   const [selectedPostcode, setSelectedPostcode] = useState<string | null>(null)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+  const [showHeatmap, setShowHeatmap] = useState(true)
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -125,6 +126,11 @@ export function PostcodeMap({
 
     const defs = svg.append('defs')
 
+    const costExtent = d3.extent(allPostcodes, (d) => d.averageAnnualCostPence) as [number, number]
+    const heatmapColorScale = d3
+      .scaleSequential(d3.interpolateRdYlGn)
+      .domain([costExtent[1], costExtent[0]])
+
     allPostcodes.forEach((postcode) => {
       const gradientId = `gradient-${postcode.postcode.replace(/\s/g, '')}`
       const gradient = defs
@@ -150,6 +156,66 @@ export function PostcodeMap({
       (d) => yScale(d.latitude)
     ).voronoi([0, 0, innerWidth, innerHeight])
 
+    if (showHeatmap) {
+      const heatmapCells = g
+        .append('g')
+        .attr('class', 'heatmap-layer')
+        .selectAll('path')
+        .data(allPostcodes)
+        .join('path')
+        .attr('d', (d, i) => voronoi.renderCell(i))
+        .attr('fill', (d) => heatmapColorScale(d.averageAnnualCostPence))
+        .attr('opacity', 0.4)
+        .attr('stroke', 'white')
+        .attr('stroke-width', 1)
+        .attr('stroke-opacity', 0.3)
+
+      const gridSize = 30
+      const heatmapData: Array<{ x: number; y: number; value: number }> = []
+      
+      for (let x = 0; x < innerWidth; x += gridSize) {
+        for (let y = 0; y < innerHeight; y += gridSize) {
+          let totalWeight = 0
+          let weightedSum = 0
+          
+          allPostcodes.forEach((p) => {
+            const px = xScale(p.longitude)
+            const py = yScale(p.latitude)
+            const distance = Math.sqrt(Math.pow(x + gridSize / 2 - px, 2) + Math.pow(y + gridSize / 2 - py, 2))
+            const maxDistance = Math.sqrt(Math.pow(innerWidth, 2) + Math.pow(innerHeight, 2)) * 0.3
+            
+            if (distance < maxDistance) {
+              const weight = Math.pow(1 - distance / maxDistance, 2)
+              totalWeight += weight
+              weightedSum += p.averageAnnualCostPence * weight
+            }
+          })
+          
+          if (totalWeight > 0) {
+            heatmapData.push({
+              x,
+              y,
+              value: weightedSum / totalWeight,
+            })
+          }
+        }
+      }
+
+      g.append('g')
+        .attr('class', 'heatmap-grid')
+        .selectAll('rect')
+        .data(heatmapData)
+        .join('rect')
+        .attr('x', (d) => d.x)
+        .attr('y', (d) => d.y)
+        .attr('width', gridSize)
+        .attr('height', gridSize)
+        .attr('fill', (d) => heatmapColorScale(d.value))
+        .attr('opacity', 0.15)
+        .attr('pointer-events', 'none')
+        .lower()
+    }
+
     g.append('g')
       .selectAll('path')
       .data(allPostcodes)
@@ -157,6 +223,7 @@ export function PostcodeMap({
       .attr('d', (d, i) => voronoi.renderCell(i))
       .attr('fill', (d) => `url(#gradient-${d.postcode.replace(/\s/g, '')})`)
       .attr('stroke', 'none')
+      .attr('opacity', showHeatmap ? 0.5 : 1)
 
     const costScale = d3
       .scaleSqrt()
@@ -262,7 +329,7 @@ export function PostcodeMap({
           .text(d.label)
       })
 
-  }, [centerPostcode, centerLat, centerLng, neighboringPostcodes, userBand, userCostPence, dimensions])
+  }, [centerPostcode, centerLat, centerLng, neighboringPostcodes, userBand, userCostPence, dimensions, showHeatmap])
 
   const selected = selectedPostcode
     ? [
@@ -273,6 +340,35 @@ export function PostcodeMap({
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">Cost Density Heatmap</span>
+          <button
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+          >
+            {showHeatmap ? '🔥 Hide Heatmap' : '🗺️ Show Heatmap'}
+          </button>
+        </div>
+        {showHeatmap && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Cost:</span>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgb(0, 158, 115)' }} />
+              <span className="text-muted-foreground">Low</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgb(240, 228, 66)' }} />
+              <span className="text-muted-foreground">Med</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgb(213, 94, 0)' }} />
+              <span className="text-muted-foreground">High</span>
+            </div>
+          </div>
+        )}
+      </div>
+      
       <div className="relative">
         <svg ref={svgRef} width="100%" height={dimensions.height || 500} />
       </div>
@@ -346,6 +442,11 @@ export function PostcodeMap({
           <li>
             <strong>Circle color</strong> shows the average band (green = lower, red = higher)
           </li>
+          {showHeatmap && (
+            <li>
+              <strong>Heatmap overlay</strong> shows cost density interpolated across the region
+            </li>
+          )}
           <li>
             <strong>Your postcode</strong> is marked with a blue border in the center
           </li>
