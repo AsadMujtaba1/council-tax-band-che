@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { Calculator, TrendUp, Info, Download, ArrowRight, CheckCircle, WarningCircle, MagnifyingGlass } from '@phosphor-icons/react'
+import { Calculator, TrendUp, Info, Download, ArrowRight, CheckCircle, WarningCircle, MagnifyingGlass, MapPin } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +16,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
  * 2. Land Registry Benchmark JSON - Pre-calculated property values by postcode
  * 3. Council Tax Band Data Catalogue - Average rates by band and local authority
  * 4. Bank of England Benchmark JSON - Historical inflation data for trends
+ * 5. Neighboring Postcodes Data - Geographic proximity data for regional comparisons (radius: 2.5 miles)
  * 
  * ToolData interface defined below - mock data provided for demo
  * Integration team: Replace fetchToolData with real API adapter
@@ -26,6 +27,15 @@ interface PostcodeMeta {
   latitude: number
   longitude: number
   region: string
+  localAuthority: string
+}
+
+interface NeighborPostcodeData {
+  postcode: string
+  distance: number
+  averageBand: string
+  averageAnnualCostPence: number
+  propertyCount: number
   localAuthority: string
 }
 
@@ -52,6 +62,7 @@ interface ToolData {
   userAnnualCostPence: number | null
   averageAnnualCostPounds: number
   estimatedSavingsPounds: number
+  neighboringPostcodes: NeighborPostcodeData[]
   usageCount: number
   averageRating: number
   ratingCount: number
@@ -96,6 +107,57 @@ const fetchToolData = async (params: FetchToolDataParams): Promise<ToolData> => 
     ? userCost - mockCouncilTaxBands[lowerBand].averageAnnualCostPence 
     : savingsPence
 
+  const neighboringPostcodes: NeighborPostcodeData[] = [
+    {
+      postcode: 'SW1A 2AA',
+      distance: 0.3,
+      averageBand: 'E',
+      averageAnnualCostPence: 200000,
+      propertyCount: 342,
+      localAuthority: 'Westminster'
+    },
+    {
+      postcode: 'SW1P 1AA',
+      distance: 0.8,
+      averageBand: 'D',
+      averageAnnualCostPence: 175000,
+      propertyCount: 289,
+      localAuthority: 'Westminster'
+    },
+    {
+      postcode: 'SW1Y 4AA',
+      distance: 1.2,
+      averageBand: 'F',
+      averageAnnualCostPence: 240000,
+      propertyCount: 156,
+      localAuthority: 'Westminster'
+    },
+    {
+      postcode: 'SW1H 0AA',
+      distance: 1.5,
+      averageBand: 'C',
+      averageAnnualCostPence: 165000,
+      propertyCount: 478,
+      localAuthority: 'Westminster'
+    },
+    {
+      postcode: 'SE1 7AA',
+      distance: 2.1,
+      averageBand: 'C',
+      averageAnnualCostPence: 155000,
+      propertyCount: 521,
+      localAuthority: 'Southwark'
+    },
+    {
+      postcode: 'SW3 2AA',
+      distance: 2.4,
+      averageBand: 'G',
+      averageAnnualCostPence: 295000,
+      propertyCount: 234,
+      localAuthority: 'Kensington and Chelsea'
+    }
+  ]
+
   return {
     postcodeMeta: {
       postcode: params.postcode.toUpperCase(),
@@ -118,6 +180,7 @@ const fetchToolData = async (params: FetchToolDataParams): Promise<ToolData> => 
     userAnnualCostPence: userCost,
     averageAnnualCostPounds: averageCost / 100,
     estimatedSavingsPounds: Math.max(potentialSavingsPence / 100, 0),
+    neighboringPostcodes,
     usageCount: 23459,
     averageRating: 4.7,
     ratingCount: 1247,
@@ -230,6 +293,10 @@ function App() {
     {
       question: 'How is my council tax band determined?',
       answer: 'Council tax bands are based on property value as of 1st April 1991 in England and Wales (1st April 2003 in Scotland). Properties are valued and assigned to bands A-H, with Band A being the lowest value properties and Band H the highest. Check your local council website for precise dates and band thresholds in your area.'
+    },
+    {
+      question: 'Why do neighboring postcodes have different council tax costs?',
+      answer: 'Council tax varies between areas due to two main factors: 1) Different local authorities set different rates based on their budgets and service levels, and 2) Property valuations can differ significantly even in nearby postcodes due to property types, sizes, and historical valuations. Even within the same local authority, different postcodes can have varying property band distributions.'
     },
     {
       question: 'Can I challenge my council tax band?',
@@ -706,6 +773,155 @@ function App() {
                 <p className="text-xs text-muted-foreground mt-4 text-center">
                   Values based on 1991 property prices in England and Wales. {data.postcodeMeta.region} distribution may vary.
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" weight="duotone" />
+                  Neighboring Postcodes Comparison
+                </CardTitle>
+                <CardDescription>
+                  See how council tax costs vary in nearby areas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      💡 Council tax can vary significantly between neighboring postcodes due to different local authorities and property valuations. Compare your area with nearby locations.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {data.neighboringPostcodes.map((neighbor) => {
+                      const costDiff = neighbor.averageAnnualCostPence - (data.userAnnualCostPence || 0)
+                      const isMoreExpensive = costDiff > 0
+                      const isSameAuthority = neighbor.localAuthority === data.postcodeMeta.localAuthority
+                      
+                      return (
+                        <div
+                          key={neighbor.postcode}
+                          className="p-4 rounded-lg border border-border bg-card hover:border-primary/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-lg font-bold">{neighbor.postcode}</h4>
+                                {!isSameAuthority && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {neighbor.localAuthority}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {neighbor.distance} miles away • {neighbor.propertyCount.toLocaleString()} properties
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground mb-0.5">Average Band</p>
+                              <Badge variant="secondary" className="font-bold">
+                                Band {neighbor.averageBand}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 rounded-lg bg-muted/50">
+                              <p className="text-xs text-muted-foreground mb-1">Average Cost</p>
+                              <p className="text-xl font-bold data-table">
+                                £{(neighbor.averageAnnualCostPence / 100).toFixed(0)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">per year</p>
+                            </div>
+                            <div className={`p-3 rounded-lg ${isMoreExpensive ? 'bg-destructive/10' : 'bg-success/10'}`}>
+                              <p className="text-xs text-muted-foreground mb-1">vs Your Cost</p>
+                              <p className={`text-xl font-bold data-table ${isMoreExpensive ? 'text-destructive' : 'text-success'}`}>
+                                {isMoreExpensive ? '+' : ''}£{Math.abs(costDiff / 100).toFixed(0)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {isMoreExpensive ? 'more expensive' : 'less expensive'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${isMoreExpensive ? 'bg-destructive' : 'bg-success'}`}
+                              style={{ 
+                                width: `${Math.min((Math.abs(costDiff) / (data.userAnnualCostPence || 1)) * 100, 100)}%` 
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="mt-6">
+                    <h4 className="text-sm font-semibold mb-3">Regional Insights</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
+                        <p className="text-xs text-muted-foreground mb-1">Lowest Nearby</p>
+                        <p className="text-2xl font-bold text-accent hero-metric">
+                          £{Math.min(...data.neighboringPostcodes.map(n => n.averageAnnualCostPence / 100)).toFixed(0)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {data.neighboringPostcodes.find(n => n.averageAnnualCostPence === Math.min(...data.neighboringPostcodes.map(x => x.averageAnnualCostPence)))?.postcode}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-secondary/10 border border-secondary/20">
+                        <p className="text-xs text-muted-foreground mb-1">Highest Nearby</p>
+                        <p className="text-2xl font-bold text-secondary hero-metric">
+                          £{Math.max(...data.neighboringPostcodes.map(n => n.averageAnnualCostPence / 100)).toFixed(0)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {data.neighboringPostcodes.find(n => n.averageAnnualCostPence === Math.max(...data.neighboringPostcodes.map(x => x.averageAnnualCostPence)))?.postcode}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                        <p className="text-xs text-muted-foreground mb-1">Average Range</p>
+                        <p className="text-2xl font-bold text-primary hero-metric">
+                          £{((Math.max(...data.neighboringPostcodes.map(n => n.averageAnnualCostPence)) - 
+                             Math.min(...data.neighboringPostcodes.map(n => n.averageAnnualCostPence))) / 100).toFixed(0)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">variation</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <h4 className="text-sm font-semibold mb-3">Band Distribution Map</h4>
+                    <div className="space-y-2">
+                      {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((band) => {
+                        const count = data.neighboringPostcodes.filter(n => n.averageBand === band).length
+                        const percentage = (count / data.neighboringPostcodes.length) * 100
+                        
+                        return (
+                          <div key={band} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-semibold">Band {band}</span>
+                              <span className="text-muted-foreground">
+                                {count} area{count !== 1 ? 's' : ''} ({percentage.toFixed(0)}%)
+                              </span>
+                            </div>
+                            <div className="h-3 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${
+                                  band === data.userCouncilTaxBand
+                                    ? 'bg-primary'
+                                    : 'bg-secondary'
+                                }`}
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

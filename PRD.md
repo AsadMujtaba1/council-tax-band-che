@@ -68,6 +68,13 @@ This tool processes user inputs (postcode, property details), compares against d
 - Progression: Show band value ranges → Display property types → Indicate distribution percentages → Highlight user's band
 - Success criteria: Users can self-assess whether their property characteristics match their band assignment
 
+**Neighboring Postcodes Regional Comparison**
+- Functionality: Displays council tax data for 6 nearby postcodes with distance, average band, and cost comparisons
+- Purpose: Shows regional variations and helps users understand if their area is expensive relative to nearby locations
+- Trigger: Displayed after band distribution insights in results section
+- Progression: Load neighboring data → Show individual postcode cards → Display cost differences → Highlight regional insights → Show band distribution map
+- Success criteria: Users can see cost variations across neighboring areas; clear visualization of which areas are cheaper/more expensive; insights into regional band distribution patterns
+
 **Challenge Pathway CTAs**
 - Functionality: Directs users to band challenge services and information resources
 - Purpose: Converts insight into action and generates affiliate revenue
